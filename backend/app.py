@@ -30,9 +30,9 @@ def load_weights(name, filename):
         print(f"⚠️ Không tìm thấy {filename} tại {filepath}. Lỗi: {e}")
 
 print("⏳ Đang khởi động hệ thống...")
-load_weights('pixel', 'weights_pixel.npz')
-load_weights('sobel', 'weights_sobel.npz')
-load_weights('block', 'weights_block.npz')
+load_weights('pixel', './models/model_function1.npz')
+load_weights('sobel', './models/model_function2.npz')
+load_weights('block', './models/model_function3.npz')
 
 # --- 3. CÁC HÀM TOÁN HỌC & XỬ LÝ ẢNH (GIỮ NGUYÊN) ---
 def softmax(z):
