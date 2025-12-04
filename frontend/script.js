@@ -145,7 +145,7 @@ function predict() {
 
         document.getElementById('result').innerText = "⏳";
 
-        fetch('http://127.0.0.1:5000/predict', {
+        fetch('https://mnist-ai-web.onrender.com/predict', {
             method: 'POST',
             body: formData
         })
