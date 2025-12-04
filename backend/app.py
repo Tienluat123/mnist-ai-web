@@ -2,9 +2,10 @@ import numpy as np
 import cv2
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask import render_template # Nhớ import thêm cái này ở đầu file
 from PIL import Image
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='../templates', static_folder='../templates')
 CORS(app)
 
 # --- 1. LOAD 3 BỘ TRỌNG SỐ ---
@@ -72,7 +73,14 @@ def process_block_avg(img_norm, block_size=2):
     
     return img_blocked.reshape(1, -1) # (1, 196)
 
+
+
 # --- 4. API ENDPOINT ---
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+
 @app.route('/predict', methods=['POST'])
 def predict():
     if 'file' not in request.files:
