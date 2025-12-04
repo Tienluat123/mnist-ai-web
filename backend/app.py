@@ -1,85 +1,78 @@
 import numpy as np
 import cv2
-from flask import Flask, request, jsonify
+import os
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-from flask import render_template # Nhớ import thêm cái này ở đầu file
 from PIL import Image
 
-app = Flask(__name__, template_folder='../templates', static_folder='../templates')
+# --- 1. CẤU HÌNH ĐƯỜNG DẪN TUYỆT ĐỐI (FIX LỖI TÌM FILE) ---
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.join(BACKEND_DIR, '../frontend')
+
+
+app = Flask(__name__, 
+            template_folder=FRONTEND_DIR, 
+            static_folder=FRONTEND_DIR,
+            static_url_path='')
 CORS(app)
 
-# --- 1. LOAD 3 BỘ TRỌNG SỐ ---
+# --- 2. LOAD TRỌNG SỐ (SỬA ĐỂ DÙNG ĐƯỜNG DẪN TUYỆT ĐỐI) ---
 models = {}
 
-def load_weights(name, filepath):
+def load_weights(name, filename):
+    # Ghép đường dẫn backend với tên file để luôn tìm thấy
+    filepath = os.path.join(BACKEND_DIR, filename)
     try:
         data = np.load(filepath)
         models[name] = {'W': data['W'], 'b': data['b']}
         print(f"✅ Đã tải {name}: W shape {models[name]['W'].shape}")
-    except:
-        print(f"⚠️ Không tìm thấy {filepath}")
+    except Exception as e:
+        print(f"⚠️ Không tìm thấy {filename} tại {filepath}. Lỗi: {e}")
 
 print("⏳ Đang khởi động hệ thống...")
-load_weights('pixel', 'weights_pixel.npz') # 784 features
-load_weights('sobel', 'weights_sobel.npz') # 1568 features
-load_weights('block', 'weights_block.npz') # 196 features
+load_weights('pixel', 'weights_pixel.npz')
+load_weights('sobel', 'weights_sobel.npz')
+load_weights('block', 'weights_block.npz')
 
-# --- 2. CÁC HÀM TOÁN HỌC CHUNG ---
+# --- 3. CÁC HÀM TOÁN HỌC & XỬ LÝ ẢNH (GIỮ NGUYÊN) ---
 def softmax(z):
     z_stable = z - np.max(z, axis=1, keepdims=True)
     exp_z = np.exp(z_stable)
     return exp_z / np.sum(exp_z, axis=1, keepdims=True)
 
-# --- 3. CÁC HÀM XỬ LÝ ẢNH (Preprocessing) ---
-
-# Xử lý chung: Mở ảnh -> Xám -> Resize -> Mảng -> Đảo màu -> Chuẩn hóa
 def preprocess_common(image_file):
     img = Image.open(image_file).convert('L')
     img = img.resize((28, 28))
     img_array = np.array(img)
-    img_array = 255.0 - img_array # Đảo màu (Trắng trên nền đen)
-    img_norm = img_array / 255.0  # Về 0-1
+    img_array = 255.0 - img_array
+    img_norm = img_array / 255.0
     return img_norm
 
-# [Logic 1] Model Pixel
 def process_pixel(img_norm):
-    return img_norm.reshape(1, -1) # (1, 784)
+    return img_norm.reshape(1, -1)
 
-# [Logic 2] Model Sobel
 def process_sobel(img_norm):
     img_float = img_norm.astype(np.float32)
     sobelx = cv2.Sobel(img_float, cv2.CV_64F, 1, 0, ksize=3)
     sobely = cv2.Sobel(img_float, cv2.CV_64F, 0, 1, ksize=3)
     edges = np.sqrt(sobelx**2 + sobely**2)
     edges = edges / (edges.max() + 1e-8)
-    
     img_stacked = np.stack([img_norm, edges], axis=-1)
-    return img_stacked.reshape(1, -1) # (1, 1568)
+    return img_stacked.reshape(1, -1)
 
-# [Logic 3] Model Block Averaging (Mới thêm)
 def process_block_avg(img_norm, block_size=2):
-    # Input: (28, 28)
     H, W = img_norm.shape
     new_h, new_w = H // block_size, W // block_size
-    
-    # Cắt cho chẵn (nếu cần)
     valid_h, valid_w = new_h * block_size, new_w * block_size
     img_cropped = img_norm[:valid_h, :valid_w]
-    
-    # Reshape thành (14, 2, 14, 2)
-    # Sau đó tính mean ở các chiều block (axis 1 và 3)
     reshaped = img_cropped.reshape(new_h, block_size, new_w, block_size)
-    img_blocked = reshaped.mean(axis=(1, 3)) # Kết quả ra (14, 14)
-    
-    return img_blocked.reshape(1, -1) # (1, 196)
+    img_blocked = reshaped.mean(axis=(1, 3))
+    return img_blocked.reshape(1, -1)
 
-
-
-# --- 4. API ENDPOINT ---
+# --- 4. ROUTES ---
 @app.route('/')
 def home():
     return render_template('index.html')
-
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -89,15 +82,13 @@ def predict():
     model_type = request.form.get('model_type', 'pixel')
     
     if model_type not in models:
-        return jsonify({'error': f"Model '{model_type}' chưa được tải (kiểm tra file .npz)"}), 400
+        return jsonify({'error': f"Model '{model_type}' chưa được tải. Hãy kiểm tra server log."}), 400
 
     file = request.files['file']
     
     try:
-        # Bước 1: Xử lý chung
         img_norm = preprocess_common(file)
         
-        # Bước 2: Xử lý đặc trưng riêng
         if model_type == 'sobel':
             vector = process_sobel(img_norm)
         elif model_type == 'block':
@@ -105,11 +96,9 @@ def predict():
         else:
             vector = process_pixel(img_norm)
             
-        # Bước 3: Tính toán
         W = models[model_type]['W']
         b = models[model_type]['b']
         
-        # Kiểm tra khớp shape (Tránh lỗi nhân ma trận)
         if vector.shape[1] != W.shape[0]:
              return jsonify({'error': f"Lệch Shape: Ảnh {vector.shape}, Model {W.shape}"}), 500
 
@@ -120,8 +109,7 @@ def predict():
         return jsonify({
             'digit': int(prediction),
             'probabilities': probs.tolist(),
-            'model_used': model_type,
-            'feature_count': vector.shape[1]
+            'model_used': model_type
         })
         
     except Exception as e:
