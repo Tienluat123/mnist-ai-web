@@ -69,7 +69,6 @@ def preprocess_common(image_file):
     return img_norm
 
 
-
 def process_pixel(img_norm):
     return img_norm.reshape(1, -1)
 
