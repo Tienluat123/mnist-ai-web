@@ -32,14 +32,20 @@ Một ứng dụng web giúp nhận diện chữ số viết tay (0-9) sử dụ
     pip install -r requirements.txt
     ```
 
-3.  **Chạy Backend:**
+3.  **Cấu hình API (Quan trọng):**
+    * Mở file `frontend/script.js`.
+    * Tìm hàm `predict()`.
+    * Nếu muốn chạy local: Sửa link fetch thành `http://127.0.0.1:5000/predict`.
+    * Nếu muốn dùng bản online: Giữ nguyên link Render.
+
+4.  **Chạy Backend:**
     ```bash
-    python app.py
+    python backend/app.py
     ```
 
-4.  **Mở Frontend:**
-    Mở file `index.html` trên trình duyệt và trải nghiệm!
-
+5.  **Mở Frontend:**
+    Mở file `frontend/index.html` trên trình duyệt và trải nghiệm!
+    
 ## 🤖 Cấu trúc thư mục
 * `app.py`: Flask Backend xử lý ảnh và chạy model.
 * `script.js`: Logic vẽ Canvas và gọi API.
