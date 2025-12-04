@@ -41,12 +41,34 @@ def softmax(z):
     return exp_z / np.sum(exp_z, axis=1, keepdims=True)
 
 def preprocess_common(image_file):
+    # 1. Mở ảnh và resize về chuẩn
     img = Image.open(image_file).convert('L')
     img = img.resize((28, 28))
     img_array = np.array(img)
-    img_array = 255.0 - img_array
-    img_norm = img_array / 255.0
+    # 2. Tiền xử lý ảnh
+    top_left = img_array[0, 0]
+    top_right = img_array[0, -1]
+    bottom_left = img_array[-1, 0]
+    bottom_right = img_array[-1, -1]
+    
+    # Tính trung bình 4 góc
+    avg_corners = (int(top_left) + int(top_right) + int(bottom_left) + int(bottom_right)) / 4
+    
+    if avg_corners > 127:
+        # Nền trắng -> Đảo ngược thành nền đen chữ trắng (cho giống MNIST)
+        img_array = 255.0 - img_array
+
+    # Chuyển đổi sang định dạng uint8
+    img_uint8 = img_array.astype(np.uint8)
+
+    _, img_bin = cv2.threshold(img_uint8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # 3. Chuẩn hóa về 0-1
+    img_norm = img_bin / 255.0
+    
     return img_norm
+
+
 
 def process_pixel(img_norm):
     return img_norm.reshape(1, -1)
