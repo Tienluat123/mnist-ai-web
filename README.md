@@ -66,9 +66,9 @@ Xem video demo chi tiết tại: [YouTube Link](https://www.youtube.com/watch?v=
 ```
 
 ## Thành viên nhóm
-23127084 - Dương Thành Lộc
-23127104 - Nguyễn Bình Minh Phương
-23127221 - Nguyễn Tiến Luật
-23127250 - Trần Hồng Phương
-23127281 - Đặng Nghi Văn
+* **23127084** - Dương Thành Lộc
+* **23127104** - Nguyễn Bình Minh Phương
+* **23127221** - Nguyễn Tiến Luật
+* **23127250** - Trần Hồng Phương
+* **23127281** - Đặng Nghi Văn
 
